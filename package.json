@@ -34,6 +34,7 @@
     },
     "scripts": {
         "dev-nodemon": "./node_modules/.bin/nodemon --legacy-watch --exec 'NODE_ENV=development node --inspect=0.0.0.0:9229 ./bin/start.js'",
+        "dev-nodemon-win": ".\\node_modules\\.bin\\nodemon --legacy-watch .\\bin\\start.js'",
         "test": "jest",
         "lint": "eslint ."
     },
