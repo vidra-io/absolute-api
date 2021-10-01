@@ -1,0 +1,37 @@
+version: '3'
+
+services:
+    absolute-api:
+        build: .
+        command: [sh, -c, 'npm run dev-nodemon']
+        volumes:
+            - .:/usr/src/app
+        ports:
+            - 3000:80
+            - '9229:9229'
+        environment:
+            - PORT=80
+            - NODE_ENV=development
+            - MONGODB_URL=mongodb://mongo/customers-api
+            - BASE_PUBLIC_PATH=/api
+            - AMQP_URL=amqp://guest:guest@rabbitmq
+        depends_on:
+            - mongo
+            - rabbitmq
+    mongo:
+        image: mongo:4.2
+        ports:
+            - '27017:27017'
+    mongo-express:
+        image: mongo-express
+        ports:
+            - '8191:8081'
+        links:
+            - mongo:mongo
+        depends_on:
+            - mongo
+    rabbitmq:
+        image: rabbitmq:3.7-management-alpine
+        ports:
+            - 5672:5672
+            - 15672:15672
