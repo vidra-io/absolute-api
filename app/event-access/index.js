@@ -1,7 +1,6 @@
-const amqpEventModule = require('@vidra-io/amqp-event-module')
-const env = require('@vidra-io/environment-config').load()
+const amqpEventModule = require('../amqp-event-module')
 
-const eventModule = amqpEventModule(env.AMQP_URL, env.EXCHANGE_NAME, env.QUEUE_NAME)
+const eventModule = amqpEventModule(process.env.AMQP_URL, process.env.EXCHANGE_NAME ?? 'amq.topic', process.env.QUEUE_NAME ?? 'absolute-api')
 
 module.exports = Object.freeze({
     ...eventModule,

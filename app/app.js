@@ -1,15 +1,19 @@
-const Agenda = require('agenda')
-const fastify = require('fastify')
-
 if (!process.env.MONGODB_URL) throw new Error('MONGODB_URL environment variable configuration is required')
 
-const express = require('express')
+const Agenda = require('agenda')
+const fastify = require('fastify')
+const fastifySession = require('fastify-session')
+const fastifyCookie = require('fastify-cookie')
+// const express = require('express')
 const { init: initDb } = require('./data-access')
 const logger = require('./logger')
+const amqpEventModule = require('./amqp-event-module')
 const fastifyControllerModule = require('./fastify-controller-module')
+const eventControllerModule = require('./event-controller-module')
 // const expressControllerModule = require('./express-controller-module')
-const { getMe, postUser, getUser } = require('../lib/user-controller')
 const postUnstructured = require('../lib/unstructured-controller')
+const { postUser, getUser, createUserEventHandler } = require('../lib/user-controller')
+const { postLogin, getMe } = require('../lib/login-controller')
 
 initDb(process.env.MONGODB_URL).then(async (mongoClient) => {
     logger.info('Database connected')
@@ -17,14 +21,23 @@ initDb(process.env.MONGODB_URL).then(async (mongoClient) => {
     await agenda.start()
 })
 
-const expressApp = express()
-expressApp.use(express.json())
+const { addEventHandler } = amqpEventModule(process.env.AMQP_URL, 'amq.topic', 'absolute-api')
+addEventHandler('absolute.user.create', eventControllerModule(createUserEventHandler))
+
+// const expressApp = express()
+// expressApp.use(express.json())
 
 const app = fastify({
     logger,
     disableRequestLogging: true,
     ignoreTrailingSlash: true,
     requestIdHeader: 'x-request-id',
+})
+app.register(fastifyCookie)
+app.register(fastifySession, {
+    cookieName: 'app-session',
+    cookie: { secure: false },
+    secret: 'a secret with minimum length of 32 characters',
 })
 
 app.addHook('onResponse', (request, reply, done) => {
@@ -41,6 +54,7 @@ app.post(`${process.env.BASE_PUBLIC_PATH}/unstructured`, postUnstructured)
 app.get(`${process.env.BASE_PUBLIC_PATH}/users/me`, fastifyControllerModule(getMe))
 app.get(`${process.env.BASE_PUBLIC_PATH}/users/:userId`, fastifyControllerModule(getUser))
 app.post(`${process.env.BASE_PUBLIC_PATH}/users`, fastifyControllerModule(postUser))
+app.post(`${process.env.BASE_PUBLIC_PATH}/login`, fastifyControllerModule(postLogin))
 
 module.exports = app
 
